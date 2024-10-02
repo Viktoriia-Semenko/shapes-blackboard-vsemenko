@@ -42,6 +42,26 @@ public:
     }
 };
 
+class Rectangle : public Shape {
+    int x, y, width, height;
+public:
+    Rectangle(int x, int y, int width, int height) : x(x), y(y), width(width), height(height) {}
+
+    void draw(vector<vector<char>>& grid) const override {
+        for (int i = 0; i < height; ++i) {
+            for (int j = 0; j < width; ++j) {
+                int posX = x + j;
+                int posY = y + i;
+                if (posX >= 0 && posX < BOARD_WIDTH && posY >= 0 && posY < BOARD_HEIGHT) {
+                    if (i == 0 || i == height - 1 || j == 0 || j == width - 1) {
+                        grid[posY][posX] = '*';
+                    }
+                }
+            }
+        }
+    }
+};
+
 class Board {
     vector<vector<char>> grid;
     vector<unique_ptr<Shape>> shapes;
@@ -89,7 +109,9 @@ public:
 int main() {
     Board board;
 
-    board.addShape(std::make_unique<Triangle>(23, 2, 5));
+    board.addShape(make_unique<Triangle>(10, 1, 5));
+    board.addShape(make_unique<Rectangle>(10, 5, 10, 6));
+
     board.drawBoard();
 
     return 0;
