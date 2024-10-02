@@ -1,24 +1,29 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <map>
+
 using namespace std;
 
 const int BOARD_WIDTH = 80;
 const int BOARD_HEIGHT = 25;
 
 class Shape {
+protected:
+    int x, y;
 public:
+    Shape(int x, int y) : x(x), y(y) {}
     virtual void draw(vector<vector<char>>& grid) const = 0;
+    virtual string get_shapes_info() const = 0;
     virtual ~Shape() = default;
 };
 
 class Triangle : public Shape {
-    int x, y, height;
+    int height;
 public:
-    Triangle(int x, int y, int height) : x(x), y(y), height(height) {}
+    Triangle(int x, int y, int height) : Shape(x, y), height(height) {}
 
     void draw(vector<vector<char>>& grid) const override {
-        if (height <= 0) return;
         for (int i = 0; i < height; ++i) {
             int left_most = x - i;
             int right_most = x + i;
@@ -40,57 +45,73 @@ public:
                 grid[baseY][baseX] = '*';
         }
     }
+
+    string get_shapes_info() const override {
+        return "triangle " + to_string(x) + " " + to_string(y) + " " + to_string(height);
+    }
 };
 
 class Rectangle : public Shape {
-    int x, y, width, height;
+    int width, height;
 public:
-    Rectangle(int x, int y, int width, int height) : x(x), y(y), width(width), height(height) {}
+    Rectangle(int x, int y, int width, int height) : Shape(x, y), width(width), height(height) {}
 
     void draw(vector<vector<char>>& grid) const override {
-        for (int i = 0; i < height; ++i) {
-            for (int j = 0; j < width; ++j) {
-                int posX = x + j;
-                int posY = y + i;
-                if (posX >= 0 && posX < BOARD_WIDTH && posY >= 0 && posY < BOARD_HEIGHT) {
-                    if (i == 0 || i == height - 1 || j == 0 || j == width - 1) {
-                        grid[posY][posX] = '*';
-                    }
-                }
+        for (int i = 0; i < width; ++i) {
+            if (x + i < BOARD_WIDTH) {
+                if (y >= 0 && y < BOARD_HEIGHT) grid[y][x + i] = '*';
+                if (y + height - 1 >= 0 && y + height - 1 < BOARD_HEIGHT) grid[y + height - 1][x + i] = '*';
             }
         }
+        for (int i = 0; i < height; ++i) {
+            if (y + i < BOARD_HEIGHT) {
+                if (x >= 0 && x < BOARD_WIDTH) grid[y + i][x] = '*';
+                if (x + width - 1 >= 0 && x + width - 1 < BOARD_WIDTH) grid[y + i][x + width - 1] = '*';
+            }
+        }
+    }
+
+    string get_shapes_info() const override {
+        return "rectangle " + to_string(x) + " " + to_string(y) + " " + to_string(width) + " " + to_string(height);
     }
 };
 
 class Board {
     vector<vector<char>> grid;
-    vector<unique_ptr<Shape>> shapes;
+    map<int, shared_ptr<Shape>> shapes;
+    int shape_id = 1;
 public:
     Board() : grid(BOARD_HEIGHT, vector<char>(BOARD_WIDTH, ' ')) {}
 
-    void addShape(unique_ptr<Shape> shape) {
-        shapes.push_back(move(shape));
+    void addShape(shared_ptr<Shape> shape) {
+        shapes[shape_id++] = shape;
+    }
+
+    void list_shapes() const {
+        for (const auto& [id, shape] : shapes) {
+            cout << id << " " << shape->get_shapes_info() << "\n";
+        }
     }
 
     void clearBoard() {
         shapes.clear();
     }
 
-    void drawBoard() {
+    void draw() {
 
-        grid = vector<vector<char>>(BOARD_HEIGHT, vector<char>(BOARD_WIDTH, ' '));
+        vector<vector<char>> tempGrid = grid;
 
-        for (const auto& shape : shapes) {
-            shape->draw(grid);
+        for (const auto& [id, shape] : shapes) {
+            shape->draw(tempGrid);
         }
-        // border for board
+
         cout << "-";
         for (int i = 0; i < BOARD_WIDTH; ++i) {
             cout << "-";
         }
         cout << "-\n";
 
-        for (const auto& row : grid) {
+        for (const auto& row : tempGrid) {
             cout << "|";
             for (char c : row) {
                 cout << c;
@@ -106,13 +127,43 @@ public:
     }
 };
 
-int main() {
+class CLI {
     Board board;
 
-    board.addShape(make_unique<Triangle>(10, 1, 5));
-    board.addShape(make_unique<Rectangle>(10, 5, 10, 6));
+public:
+    void run() {
+        string command;
+        while (true) {
+            cout << "> ";
+            cin >> command;
 
-    board.drawBoard();
+            if (command == "draw") {
+                board.draw();
+            } else if (command == "list") {
+                board.list_shapes();
+            } else if (command == "add") {
+                string shape_type;
+                cin >> shape_type;
+                if (shape_type == "rectangle") {
+                    int x, y, width, height;
+                    cin >> x >> y >> width >> height;
+                    board.addShape(make_shared<Rectangle>(x, y, width, height));
+                } else if (shape_type == "triangle") {
+                    int x, y, height;
+                    cin >> x >> y >> height;
+                    board.addShape(make_shared<Triangle>(x, y, height));
+                }
+            } else if (command == "exit") {
+                break;
+            } else {
+                cout << "Unknown command!\n";
+            }
+        }
+    }
+};
 
+int main() {
+    CLI cli;
+    cli.run();
     return 0;
 }
