@@ -76,6 +76,35 @@ public:
     }
 };
 
+class Circle : public Shape {
+private:
+    int radius;
+public:
+    Circle(int x, int y, int radius) : Shape(x, y), radius(radius) {}
+
+    void draw(vector<vector<char>>& grid) const override {
+
+        for (int i = -radius; i <= radius; ++i) {
+            for (int j = -radius; j <= radius; ++j) {
+
+                int distSquared = i * i + j * j;
+                int radiusSquared = radius * radius;
+
+                if (distSquared >= radiusSquared - radius && distSquared <= radiusSquared + radius) {
+                    int posX = x + j;
+                    int posY = y + i;
+                    if (posX >= 0 && posX < BOARD_WIDTH && posY >= 0 && posY < BOARD_HEIGHT)
+                        grid[posY][posX] = '*';
+                }
+            }
+        }
+    }
+
+    string get_shapes_info() const override {
+        return "circle " + to_string(x) + " " + to_string(y) + " " + to_string(radius);
+    }
+};
+
 class Board {
     vector<vector<char>> grid;
     map<int, shared_ptr<Shape>> shapes;
@@ -148,22 +177,4 @@ public:
                     int x, y, width, height;
                     cin >> x >> y >> width >> height;
                     board.addShape(make_shared<Rectangle>(x, y, width, height));
-                } else if (shape_type == "triangle") {
-                    int x, y, height;
-                    cin >> x >> y >> height;
-                    board.addShape(make_shared<Triangle>(x, y, height));
-                }
-            } else if (command == "exit") {
-                break;
-            } else {
-                cout << "Unknown command!\n";
-            }
-        }
-    }
-};
-
-int main() {
-    CLI cli;
-    cli.run();
-    return 0;
-}
+                
