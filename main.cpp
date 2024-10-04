@@ -149,14 +149,30 @@ public:
         shapes[shape_id++] = shape;
     }
 
-    void list_shapes() const {
-        for (const auto& [id, shape] : shapes) {
-            cout << id << " " << shape->get_shapes_info() << "\n";
+    void undo() {
+        if (!shapes.empty()) {
+            shapes.erase(--shape_id);
+        } else {
+            cout << "No shapes to undo\n";
         }
     }
 
-    void clearBoard() {
-        shapes.clear();
+    void list_shapes() const {
+        if (shapes.empty()) {
+            cout << "No shapes on the board\n";
+        } else {
+            for (const auto &[id, shape]: shapes) {
+                cout << id << " " << shape->get_shapes_info() << "\n";
+            }
+        }
+    }
+
+    void clear_board() {
+        if (!shapes.empty()) {
+            shapes.clear();
+        } else {
+            cout << "No shapes to clear\n";
+        }
     }
 
     void draw() {
@@ -193,6 +209,14 @@ class CLI {
     Board board;
 
 public:
+
+    void list_available_shapes() {
+        cout << "> circle coordinates radius\n";
+        cout << "> triangle coordinates height\n";
+        cout << "> square coordinates side\n";
+        cout << "> rectangle coordinates width height\n";
+    }
+
     void run() {
         string command;
         while (true) {
@@ -203,6 +227,12 @@ public:
                 board.draw();
             } else if (command == "list") {
                 board.list_shapes();
+            } else if (command == "shapes") {
+                    list_available_shapes();
+            } else if (command == "clear") {
+                board.clear_board();
+            } else if (command == "undo") {
+                board.undo();
             } else if (command == "add") {
                 string shape_type;
                 cin >> shape_type;
