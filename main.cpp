@@ -105,6 +105,39 @@ public:
     }
 };
 
+class Square : public Shape {
+private:
+    int side;
+
+public:
+    Square(int x, int y, int side) : Shape(x, y), side(side) {}
+
+    void draw(vector<vector<char>>& grid) const override {
+
+        for (int i = 0; i < side; ++i) {
+
+            if (x + i < grid[0].size() && y < grid.size()) {
+                grid[y][x + i] = '*';
+            }
+            if (x + i < grid[0].size() && y + side - 1 < grid.size()) {
+                grid[y + side - 1][x + i] = '*';
+            }
+        }
+
+        for (int i = 1; i < side - 1; ++i) {
+            if (x < grid[0].size() && y + i < grid.size()) {
+                grid[y + i][x] = '*';
+            }
+            if (x + side - 1 < grid[0].size() && y + i < grid.size()) {
+                grid[y + i][x + side - 1] = '*';
+            }
+        }
+    }
+    string get_shapes_info() const override {
+        return "square " + to_string(x) + " " + to_string(y) + " " + to_string(side);
+    }
+};
+
 class Board {
     vector<vector<char>> grid;
     map<int, shared_ptr<Shape>> shapes;
@@ -177,4 +210,32 @@ public:
                     int x, y, width, height;
                     cin >> x >> y >> width >> height;
                     board.addShape(make_shared<Rectangle>(x, y, width, height));
-                
+                } else if (shape_type == "triangle") {
+                    int x, y, height;
+                    cin >> x >> y >> height;
+                    board.addShape(make_shared<Triangle>(x, y, height));
+                }
+                else if(shape_type == "circle") {
+                    int x, y, radius;
+                    cin >> x >> y >> radius;
+                    board.addShape(make_shared<Circle>(x, y, radius));
+                }
+                else if(shape_type == "square") {
+                    int x, y, side;
+                    cin >> x >> y >> side;
+                    board.addShape(make_shared<Square>(x, y, side));
+                }
+            } else if (command == "exit") {
+                break;
+            } else {
+                cout << "Unknown command!\n";
+            }
+        }
+    }
+};
+
+int main() {
+    CLI cli;
+    cli.run();
+    return 0;
+}
