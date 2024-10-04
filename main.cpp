@@ -2,6 +2,8 @@
 #include <vector>
 #include <memory>
 #include <map>
+#include <fstream>
+#include <sstream>
 
 using namespace std;
 
@@ -203,6 +205,51 @@ public:
         }
         cout << "-\n";
     }
+
+    void save_board(const string& file_path) const {
+        ofstream file(file_path);
+        if (!file) {
+            cout << "Error opening file" << endl;
+            return;
+        }
+
+        for (const auto& [id, shape] : shapes) {
+            file << shape->get_shapes_info() << "\n";
+        }
+        file.close();
+    }
+
+    void load_board(const string& file_path) {
+        ifstream file(file_path);
+        if (!file) {
+            cout << "Error opening file" << endl;
+            return;
+        }
+
+        clear_board();
+
+        string shape_type;
+        while (file >> shape_type) {
+            if (shape_type == "circle") {
+                int x, y, radius;
+                file >> x >> y >> radius;
+                addShape(make_shared<Circle>(x, y, radius));
+            } else if (shape_type == "rectangle") {
+                int x, y, width, height;
+                file >> x >> y >> width >> height;
+                addShape(make_shared<Rectangle>(x, y, width, height));
+            } else if (shape_type == "square") {
+                int x, y, side;
+                file >> x >> y >> side;
+                addShape(make_shared<Square>(x, y, side));
+            } else if (shape_type == "triangle") {
+                int x, y, height;
+                file >> x >> y >> height;
+                addShape(make_shared<Triangle>(x, y, height));
+            }
+        }
+        file.close();
+    }
 };
 
 class CLI {
@@ -233,6 +280,14 @@ public:
                 board.clear_board();
             } else if (command == "undo") {
                 board.undo();
+            } else if (command == "save") {
+                string file_path;
+                cin >> file_path;
+                board.save_board(file_path);
+            } else if (command == "load") {
+                string file_path;
+                cin >> file_path;
+                board.load_board(file_path);
             } else if (command == "add") {
                 string shape_type;
                 cin >> shape_type;
