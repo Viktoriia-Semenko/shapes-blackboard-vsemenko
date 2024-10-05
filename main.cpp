@@ -144,11 +144,41 @@ class Board {
     vector<vector<char>> grid;
     map<int, shared_ptr<Shape>> shapes;
     int shape_id = 1;
+
+
+    bool can_be_on_board(int x, int y, int width, int height) {
+        if (x < 0 || y < 0 || x + width > BOARD_WIDTH || y + height > BOARD_HEIGHT) {
+            return false;
+        }
+        return true;
+    }
+    bool can_be_on_board(int x, int y, int radius) {
+        if (x - radius < 0 || x + radius >= BOARD_WIDTH || y - radius < 0 || y + radius >= BOARD_HEIGHT) {
+            return false;
+        }
+        return true;
+    }
+
 public:
     Board() : grid(BOARD_HEIGHT, vector<char>(BOARD_WIDTH, ' ')) {}
 
-    void addShape(shared_ptr<Shape> shape) {
-        shapes[shape_id++] = shape;
+    void addShape(shared_ptr<Shape> shape, const string& type, int x, int y, int size1, int size2 = 0) {
+
+        bool canFit = false;
+
+        if (type == "rectangle" || type == "square") {
+            canFit = can_be_on_board(x, y, size1, (type == "square") ? size1 : size2);
+        } else if (type == "triangle") {
+            canFit = can_be_on_board(x - size1, y, size1 * 2 - 1, size1);
+        } else if (type == "circle") {
+            canFit = can_be_on_board(x, y, size1);
+        }
+
+        if (canFit) {
+            shapes[shape_id++] = shape;
+        } else {
+            cout << "Error: shape cannot be placed outside the board or be bigger than board's size\n";
+        }
     }
 
     void undo() {
@@ -233,19 +263,19 @@ public:
             if (shape_type == "circle") {
                 int x, y, radius;
                 file >> x >> y >> radius;
-                addShape(make_shared<Circle>(x, y, radius));
+                addShape(make_shared<Circle>(x, y, radius), "circle", x, y, radius);
             } else if (shape_type == "rectangle") {
                 int x, y, width, height;
                 file >> x >> y >> width >> height;
-                addShape(make_shared<Rectangle>(x, y, width, height));
+                addShape(make_shared<Rectangle>(x, y, width, height), "rectangle", x, y, width, height);
             } else if (shape_type == "square") {
                 int x, y, side;
                 file >> x >> y >> side;
-                addShape(make_shared<Square>(x, y, side));
+                addShape(make_shared<Square>(x, y, side), "square", x, y, side);
             } else if (shape_type == "triangle") {
                 int x, y, height;
                 file >> x >> y >> height;
-                addShape(make_shared<Triangle>(x, y, height));
+                addShape(make_shared<Triangle>(x, y, height), "triangle", x, y, height);
             }
         }
         file.close();
@@ -294,21 +324,21 @@ public:
                 if (shape_type == "rectangle") {
                     int x, y, width, height;
                     cin >> x >> y >> width >> height;
-                    board.addShape(make_shared<Rectangle>(x, y, width, height));
+                    board.addShape(make_shared<Rectangle>(x, y, width, height), "rectangle", x, y, width, height);
                 } else if (shape_type == "triangle") {
                     int x, y, height;
                     cin >> x >> y >> height;
-                    board.addShape(make_shared<Triangle>(x, y, height));
+                    board.addShape(make_shared<Triangle>(x, y, height), "triangle", x, y, height);
                 }
                 else if(shape_type == "circle") {
                     int x, y, radius;
                     cin >> x >> y >> radius;
-                    board.addShape(make_shared<Circle>(x, y, radius));
+                    board.addShape(make_shared<Circle>(x, y, radius), "circle", x, y, radius);
                 }
                 else if(shape_type == "square") {
                     int x, y, side;
                     cin >> x >> y >> side;
-                    board.addShape(make_shared<Square>(x, y, side));
+                    board.addShape(make_shared<Square>(x, y, side), "square", x, y, side);
                 }
             } else if (command == "exit") {
                 break;
