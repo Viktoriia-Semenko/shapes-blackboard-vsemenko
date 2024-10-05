@@ -17,6 +17,7 @@ public:
     Shape(int x, int y) : x(x), y(y) {}
     virtual void draw(vector<vector<char>>& grid) const = 0;
     virtual string get_shapes_info() const = 0;
+    virtual bool is_equal(const shared_ptr<Shape>& other) const = 0;
     virtual ~Shape() = default;
 };
 
@@ -51,6 +52,11 @@ public:
     string get_shapes_info() const override {
         return "triangle " + to_string(x) + " " + to_string(y) + " " + to_string(height);
     }
+
+    bool is_equal(const shared_ptr<Shape>& other) const override {
+        auto other_triangle = dynamic_pointer_cast<Triangle>(other);
+        return other_triangle != nullptr && x == other_triangle->x && y == other_triangle->y && height == other_triangle->height;
+    }
 };
 
 class Rectangle : public Shape {
@@ -75,6 +81,10 @@ public:
 
     string get_shapes_info() const override {
         return "rectangle " + to_string(x) + " " + to_string(y) + " " + to_string(width) + " " + to_string(height);
+    }
+    bool is_equal(const shared_ptr<Shape>& other) const override {
+        auto other_rectangle = dynamic_pointer_cast<Rectangle>(other);
+        return other_rectangle != nullptr && x == other_rectangle->x && y == other_rectangle->y && width == other_rectangle->width && height == other_rectangle->height;
     }
 };
 
@@ -104,6 +114,10 @@ public:
 
     string get_shapes_info() const override {
         return "circle " + to_string(x) + " " + to_string(y) + " " + to_string(radius);
+    }
+    bool is_equal(const shared_ptr<Shape>& other) const override {
+        auto other_circle = dynamic_pointer_cast<Circle>(other);
+        return other_circle != nullptr && x == other_circle->x && y == other_circle->y && radius == other_circle->radius;
     }
 };
 
@@ -138,6 +152,10 @@ public:
     string get_shapes_info() const override {
         return "square " + to_string(x) + " " + to_string(y) + " " + to_string(side);
     }
+    bool is_equal(const shared_ptr<Shape>& other) const override {
+        auto other_square = dynamic_pointer_cast<Square>(other);
+        return other_square != nullptr && x == other_square->x && y == other_square->y && side == other_square->side;
+    }
 };
 
 class Board {
@@ -154,203 +172,3 @@ class Board {
     }
     bool can_be_on_board(int x, int y, int radius) {
         if (x - radius < 0 || x + radius >= BOARD_WIDTH || y - radius < 0 || y + radius >= BOARD_HEIGHT) {
-            return false;
-        }
-        return true;
-    }
-
-public:
-    Board() : grid(BOARD_HEIGHT, vector<char>(BOARD_WIDTH, ' ')) {}
-
-    void addShape(shared_ptr<Shape> shape, const string& type, int x, int y, int size1, int size2 = 0) {
-
-        bool canFit = false;
-
-        if (type == "rectangle" || type == "square") {
-            canFit = can_be_on_board(x, y, size1, (type == "square") ? size1 : size2);
-        } else if (type == "triangle") {
-            canFit = can_be_on_board(x - size1, y, size1 * 2 - 1, size1);
-        } else if (type == "circle") {
-            canFit = can_be_on_board(x, y, size1);
-        }
-
-        if (canFit) {
-            shapes[shape_id++] = shape;
-        } else {
-            cout << "Error: shape cannot be placed outside the board or be bigger than board's size\n";
-        }
-    }
-
-    void undo() {
-        if (!shapes.empty()) {
-            shapes.erase(--shape_id);
-        } else {
-            cout << "No shapes to undo\n";
-        }
-    }
-
-    void list_shapes() const {
-        if (shapes.empty()) {
-            cout << "No shapes on the board\n";
-        } else {
-            for (const auto &[id, shape]: shapes) {
-                cout << id << " " << shape->get_shapes_info() << "\n";
-            }
-        }
-    }
-
-    void clear_board() {
-        if (!shapes.empty()) {
-            shapes.clear();
-        } else {
-            cout << "No shapes to clear\n";
-        }
-    }
-
-    void draw() {
-
-        vector<vector<char>> tempGrid = grid;
-
-        for (const auto& [id, shape] : shapes) {
-            shape->draw(tempGrid);
-        }
-
-        cout << "-";
-        for (int i = 0; i < BOARD_WIDTH; ++i) {
-            cout << "-";
-        }
-        cout << "-\n";
-
-        for (const auto& row : tempGrid) {
-            cout << "|";
-            for (char c : row) {
-                cout << c;
-            }
-            cout << "|\n";
-        }
-
-        cout << "-";
-        for (int i = 0; i < BOARD_WIDTH; ++i) {
-            cout << "-";
-        }
-        cout << "-\n";
-    }
-
-    void save_board(const string& file_path) const {
-        ofstream file(file_path);
-        if (!file) {
-            cout << "Error opening file" << endl;
-            return;
-        }
-
-        for (const auto& [id, shape] : shapes) {
-            file << shape->get_shapes_info() << "\n";
-        }
-        file.close();
-    }
-
-    void load_board(const string& file_path) {
-        ifstream file(file_path);
-        if (!file) {
-            cout << "Error opening file" << endl;
-            return;
-        }
-
-        clear_board();
-
-        string shape_type;
-        while (file >> shape_type) {
-            if (shape_type == "circle") {
-                int x, y, radius;
-                file >> x >> y >> radius;
-                addShape(make_shared<Circle>(x, y, radius), "circle", x, y, radius);
-            } else if (shape_type == "rectangle") {
-                int x, y, width, height;
-                file >> x >> y >> width >> height;
-                addShape(make_shared<Rectangle>(x, y, width, height), "rectangle", x, y, width, height);
-            } else if (shape_type == "square") {
-                int x, y, side;
-                file >> x >> y >> side;
-                addShape(make_shared<Square>(x, y, side), "square", x, y, side);
-            } else if (shape_type == "triangle") {
-                int x, y, height;
-                file >> x >> y >> height;
-                addShape(make_shared<Triangle>(x, y, height), "triangle", x, y, height);
-            }
-        }
-        file.close();
-    }
-};
-
-class CLI {
-    Board board;
-
-public:
-
-    void list_available_shapes() {
-        cout << "> circle coordinates radius\n";
-        cout << "> triangle coordinates height\n";
-        cout << "> square coordinates side\n";
-        cout << "> rectangle coordinates width height\n";
-    }
-
-    void run() {
-        string command;
-        while (true) {
-            cout << "> ";
-            cin >> command;
-
-            if (command == "draw") {
-                board.draw();
-            } else if (command == "list") {
-                board.list_shapes();
-            } else if (command == "shapes") {
-                    list_available_shapes();
-            } else if (command == "clear") {
-                board.clear_board();
-            } else if (command == "undo") {
-                board.undo();
-            } else if (command == "save") {
-                string file_path;
-                cin >> file_path;
-                board.save_board(file_path);
-            } else if (command == "load") {
-                string file_path;
-                cin >> file_path;
-                board.load_board(file_path);
-            } else if (command == "add") {
-                string shape_type;
-                cin >> shape_type;
-                if (shape_type == "rectangle") {
-                    int x, y, width, height;
-                    cin >> x >> y >> width >> height;
-                    board.addShape(make_shared<Rectangle>(x, y, width, height), "rectangle", x, y, width, height);
-                } else if (shape_type == "triangle") {
-                    int x, y, height;
-                    cin >> x >> y >> height;
-                    board.addShape(make_shared<Triangle>(x, y, height), "triangle", x, y, height);
-                }
-                else if(shape_type == "circle") {
-                    int x, y, radius;
-                    cin >> x >> y >> radius;
-                    board.addShape(make_shared<Circle>(x, y, radius), "circle", x, y, radius);
-                }
-                else if(shape_type == "square") {
-                    int x, y, side;
-                    cin >> x >> y >> side;
-                    board.addShape(make_shared<Square>(x, y, side), "square", x, y, side);
-                }
-            } else if (command == "exit") {
-                break;
-            } else {
-                cout << "Unknown command!\n";
-            }
-        }
-    }
-};
-
-int main() {
-    CLI cli;
-    cli.run();
-    return 0;
-}
