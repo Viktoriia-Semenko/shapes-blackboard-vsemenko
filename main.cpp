@@ -164,17 +164,12 @@ class Board {
     int shape_id = 1;
 
 
-    bool can_be_on_board(int x, int y, int width, int height) {
-        if (x < 0 || y < 0 || x + width > BOARD_WIDTH || y + height > BOARD_HEIGHT) {
-            return false;
-        }
-        return true;
+    static bool can_be_on_board(int x, int y, int width, int height) {
+        return !(x >= BOARD_WIDTH || y >= BOARD_HEIGHT || x + width <= 0 || y + height <= 0);
     }
-    bool can_be_on_board(int x, int y, int radius) {
-        if (x - radius < 0 || x + radius >= BOARD_WIDTH || y - radius < 0 || y + radius >= BOARD_HEIGHT) {
-            return false;
-        }
-        return true;
+
+    static bool can_be_on_board_circle(int x, int y, int radius) {
+        return !(x + radius < 0 || x - radius >= BOARD_WIDTH || y + radius < 0 || y - radius >= BOARD_HEIGHT);
     }
 
 public:
@@ -196,7 +191,7 @@ public:
         } else if (type == "triangle") {
             can_fit = can_be_on_board(x - size1, y, size1 * 2 - 1, size1);
         } else if (type == "circle") {
-            can_fit = can_be_on_board(x, y, size1);
+            can_fit = can_be_on_board_circle(x, y, size1);
         }
 
         if (can_fit) {
