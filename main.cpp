@@ -242,6 +242,7 @@ class Board {
     vector<vector<char>> grid;
     map<int, shared_ptr<Shape>> shapes;
     int shape_id = 1;
+    shared_ptr<Shape> selected_shape;
 
     static bool can_be_on_board(int x, int y, int width, int height) {
         return !(x >= BOARD_WIDTH || y >= BOARD_HEIGHT || x + width <= 0 || y + height <= 0);
@@ -259,8 +260,9 @@ public:
             int id = stoi(identifier);
             auto it = shapes.find(id);
             if (it != shapes.end()) {
+                selected_shape = it->second;
                 cout << it->second->get_shapes_info() << endl;
-                return it->second;
+                return selected_shape;
             }
         } catch (invalid_argument&){}
 
@@ -271,14 +273,31 @@ public:
 
             for (const auto& shape_pair : shapes) {
                 if (shape_pair.second->is_occupied(x, y)) {
+                    selected_shape = shape_pair.second;
                     cout << shape_pair.second->get_shapes_info() << endl;
-                    return shape_pair.second;
+                    return selected_shape;
                 }
             }
         }
 
         cout << "shape was not found" << endl;
         return nullptr;
+    }
+
+    void remove_shape() {
+        if (selected_shape) {
+            auto it = shapes.begin();
+            while (it != shapes.end()) {
+                if (it->second == selected_shape) {
+                    cout << it->first << " " << it->second->get_shapes_info() << " removed" << endl;
+                    shapes.erase(it);
+                    selected_shape.reset();
+                    return;
+                }
+                ++it;
+            }
+        }
+        cout << "no shape was selected" << endl;
     }
 
 
@@ -448,7 +467,7 @@ public:
             } else if (command == "list") {
                 board.list_shapes();
             } else if (command == "shapes") {
-                    list_available_shapes();
+                list_available_shapes();
             } else if (command == "clear") {
                 board.clear_board();
             } else if (command == "undo") {
@@ -465,10 +484,10 @@ public:
                 string identifier;
                 cin.ignore();
                 getline(cin, identifier);
-                board.select_shape(identifier);
-
+                shared_ptr<Shape> selected_shape = board.select_shape(identifier);
+            } else if (command == "remove") {
+                board.remove_shape();
             } else if (command == "add") {
-
                 string fill_type, color, shape_type;
                 cin >> fill_type >> color >> shape_type;
 
