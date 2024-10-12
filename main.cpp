@@ -20,6 +20,7 @@ public:
     virtual void draw(vector<vector<char>>& grid) const = 0;
     virtual string get_shapes_info() const = 0;
     virtual bool is_equal(const shared_ptr<Shape>& other) const = 0;
+    virtual bool is_occupied(int x, int y) const = 0;
     virtual ~Shape() = default;
 };
 
@@ -65,6 +66,19 @@ public:
             }
         }
     }
+    bool is_occupied(int px, int py) const override {
+        int row_in_triangle = py - y;
+        if (row_in_triangle < 0 || row_in_triangle >= height) return false;
+
+        int left_most = x - row_in_triangle;
+        int right_most = x + row_in_triangle;
+
+        if (is_filled) {
+            return px >= left_most && px <= right_most;
+        } else {
+            return (px == left_most || px == right_most || py == y + height - 1);
+        }
+    }
 
     string get_shapes_info() const override {
         return string("triangle ") + color + " " + to_string(x) + " " + to_string(y) + " " + to_string(height);
@@ -108,7 +122,14 @@ public:
             }
         }
     }
-
+    bool is_occupied(int px, int py) const override {
+        if (is_filled) {
+            return px >= x && px < x + width && py >= y && py < y + height; // Filled rectangle
+        } else {
+            return ((px == x || px == x + width - 1) && (py >= y && py < y + height)) || // Vertical edges
+                   ((py == y || py == y + height - 1) && (px >= x && px < x + width)); // Horizontal edges
+        }
+    }
     string get_shapes_info() const override {
         return string("rectangle ") + color + " " + to_string(x) + " " + to_string(y) + " " + to_string(width) + " " + to_string(height);
     }
@@ -143,7 +164,15 @@ public:
             }
         }
     }
+    bool is_occupied(int px, int py) const override {
+        int dx = px - x;
+        int dy = py - y;
+        int dist_squared = dx * dx + dy * dy;
+        int radius_squared = radius * radius;
 
+        return is_filled ? (dist_squared <= radius_squared) :
+               (dist_squared >= (radius - 1) * (radius - 1) && dist_squared <= radius_squared);
+    }
     string get_shapes_info() const override {
         return string("circle ") + color + " "  + to_string(x) + " " + to_string(y) + " " + to_string(radius);
     }
@@ -189,6 +218,15 @@ public:
             }
         }
     }
+    bool is_occupied(int px, int py) const override {
+        if (is_filled) {
+            return px >= x && px < x + side && py >= y && py < y + side;
+        } else {
+            bool on_left_or_right_edge = (px == x || px == x + side - 1) && (py >= y && py < y + side);
+            bool on_top_or_bottom_edge = (py == y || py == y + side - 1) && (px >= x && px < x + side);
+            return on_left_or_right_edge || on_top_or_bottom_edge;
+        }
+    }
 
     string get_shapes_info() const override {
         return string("square ") + color + " " + to_string(x) + " " + to_string(y) + " " + to_string(side);
@@ -215,6 +253,35 @@ class Board {
 
 public:
     Board() : grid(BOARD_HEIGHT, vector<char>(BOARD_WIDTH, ' ')) {}
+
+    shared_ptr<Shape> select_shape(const string& identifier) {
+        try {
+            int id = stoi(identifier);
+            auto it = shapes.find(id);
+            if (it != shapes.end()) {
+                cout << it->second->get_shapes_info() << endl;
+                return it->second;
+            }
+        } catch (invalid_argument&){}
+
+
+        istringstream iss(identifier);
+        int x, y;
+        if (iss >> x >> y) {
+
+            for (const auto& shape_pair : shapes) {
+                if (shape_pair.second->is_occupied(x, y)) {
+                    cout << shape_pair.second->get_shapes_info() << endl;
+                    return shape_pair.second;
+                }
+            }
+        }
+
+        cout << "shape was not found" << endl;
+        return nullptr;
+    }
+
+
 
     int add_shape(shared_ptr<Shape> shape, const string& type, int x, int y, int size1, int size2 = 0) {
 
@@ -394,6 +461,12 @@ public:
                 string file_path;
                 cin >> file_path;
                 board.load_board(file_path);
+            } else if (command == "select") {
+                string identifier;
+                cin.ignore();
+                getline(cin, identifier);
+                board.select_shape(identifier);
+
             } else if (command == "add") {
 
                 string fill_type, color, shape_type;
