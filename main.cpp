@@ -30,6 +30,10 @@ public:
     Triangle(int x, int y, int height, bool is_filled, const string& color)
     : Shape(x, y, is_filled, color), height(height) {}
 
+    void set_height(int new_height) {
+        height = new_height;
+    }
+
     void draw(vector<vector<char>>& grid) const override {
         if (is_filled) {
             for (int i = 0; i < height; ++i) {
@@ -97,6 +101,11 @@ public:
     Rectangle(int x, int y, int width, int height, bool is_filled, const string& color)
     : Shape(x, y, is_filled, color), width(width), height(height) {}
 
+    void set_dimensions(int new_width, int new_height) {
+        width = new_width;
+        height = new_height;
+    }
+
     void draw(vector<vector<char>>& grid) const override {
         if (is_filled) {
             for (int i = 0; i < height; ++i) {
@@ -146,6 +155,8 @@ private:
 public:
     Circle(int x, int y, int radius, bool is_filled, const string& color) : Shape(x, y, is_filled, color), radius(radius) {}
 
+    void set_radius(int new_radius) { radius = new_radius; }
+
     void draw(vector<vector<char>>& grid) const override {
 
         for (int i = -radius; i <= radius; ++i) {
@@ -189,7 +200,9 @@ private:
 
 public:
     Square(int x, int y, int side, bool is_filled, const string& color) : Shape(x, y, is_filled, color), side(side) {}
-
+    void set_side(int new_side) {
+        side = new_side;
+    }
     void draw(vector<vector<char>>& grid) const override {
         if (is_filled) {
             for (int i = 0; i < side; ++i) {
@@ -284,6 +297,10 @@ public:
         return nullptr;
     }
 
+    shared_ptr<Shape> get_selected_shape() {
+        return selected_shape;
+    }
+
     void remove_shape() {
         if (selected_shape) {
             auto it = shapes.begin();
@@ -300,7 +317,48 @@ public:
         cout << "no shape was selected" << endl;
     }
 
+    void edit_shape(int new_size1, int new_size2 = -1) {
+        if (!selected_shape) {
+            cout << "No shape is currently selected." << endl;
+            return;
+        }
+        if (auto circle = dynamic_pointer_cast<Circle>(selected_shape)) {
+            if (new_size2 != -1) {
+                cout << "error: invalid argument count" << endl;
+                return;
+            }
+            circle->set_radius(new_size1);
+            cout << "size of circle changed" << endl;
 
+        } else if (auto rectangle = dynamic_pointer_cast<Rectangle>(selected_shape)) {
+
+            if (new_size1 <= 0 || new_size2 <= 0) {
+                cout << "error: invalid argument count" << endl;
+                return;
+            }
+            rectangle->set_dimensions(new_size1, new_size2);
+            cout << "size of rectangle changed." << endl;
+
+        } else if (auto triangle = dynamic_pointer_cast<Triangle>(selected_shape)) {
+            if (new_size1 <= 0) {
+                cout << "error: invalid argument count" << endl;
+                return;
+            }
+            triangle->set_height(new_size1);
+            cout << "size of triangle changed" << endl;
+
+        } else if (auto square = dynamic_pointer_cast<Square>(selected_shape)) {
+            if (new_size1 <= 0) {
+                cout << "error: invalid argument count" << endl;
+                return;
+            }
+            square->set_side(new_size1); // Implement set_side in Square class
+            cout << "size of square changed." << endl;
+
+        } else {
+            cout << "error: unknown shape type" << endl;
+        }
+    }
 
     int add_shape(shared_ptr<Shape> shape, const string& type, int x, int y, int size1, int size2 = 0) {
 
@@ -486,6 +544,19 @@ public:
                 shared_ptr<Shape> selected_shape = board.select_shape(identifier);
             } else if (command == "remove") {
                 board.remove_shape();
+            } else if(command == "edit") {
+                int size1, size2 = -1;
+                cin >> size1;
+
+                shared_ptr<Shape> current_shape = board.get_selected_shape();
+
+                if (dynamic_pointer_cast<Rectangle>(current_shape)) {
+                    cin >> size2;
+                    board.edit_shape(size1, size2);
+                } else {
+                    board.edit_shape(size1);
+                }
+
             } else if (command == "add") {
                 string fill_type, color, shape_type;
                 cin >> fill_type >> color >> shape_type;
