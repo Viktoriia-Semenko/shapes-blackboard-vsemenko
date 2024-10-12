@@ -14,9 +14,9 @@ class Shape {
 protected:
     int x, y;
     bool is_filled;
-    char color;
+    string color;
 public:
-    Shape(int x, int y, bool fill, char color) : x(x), y(y), is_filled(fill), color(color) {}
+    Shape(int x, int y, bool fill, const string& color) : x(x), y(y), is_filled(fill), color(color) {}
     virtual void draw(vector<vector<char>>& grid) const = 0;
     virtual string get_shapes_info() const = 0;
     virtual bool is_equal(const shared_ptr<Shape>& other) const = 0;
@@ -26,7 +26,8 @@ public:
 class Triangle : public Shape {
     int height;
 public:
-    Triangle(int x, int y, int height, bool is_filled, char color) : Shape(x, y, is_filled, color), height(height) {}
+    Triangle(int x, int y, int height, bool is_filled, const string& color)
+    : Shape(x, y, is_filled, color), height(height) {}
 
     void draw(vector<vector<char>>& grid) const override {
         if (is_filled) {
@@ -38,7 +39,7 @@ public:
                 if (position_y < BOARD_HEIGHT) {
                     for (int j = left_most; j <= right_most && j < BOARD_WIDTH; ++j) {
                         if (j >= 0)
-                            grid[position_y][j] = color;
+                            grid[position_y][j] = color[0];
                     }
                 }
             }
@@ -50,9 +51,9 @@ public:
 
                 if (position_y < BOARD_HEIGHT) {
                     if (left_most >= 0 && left_most < BOARD_WIDTH)
-                        grid[position_y][left_most] = color;
+                        grid[position_y][left_most] = color[0];
                     if (right_most >= 0 && right_most < BOARD_WIDTH && left_most != right_most)
-                        grid[position_y][right_most] = color;
+                        grid[position_y][right_most] = color[0];
                 }
             }
 
@@ -60,14 +61,13 @@ public:
                 int baseX = x - height + 1 + j;
                 int baseY = y + height - 1;
                 if (baseX >= 0 && baseX < BOARD_WIDTH && baseY < BOARD_HEIGHT)
-                    grid[baseY][baseX] = '*';
+                    grid[baseY][baseX] = color[0];
             }
         }
     }
 
     string get_shapes_info() const override {
-        return (is_filled ? "fill " : "frame ") + string("triangle ") + color + " "
-        + to_string(x) + " " + to_string(y) + " " + to_string(height);
+        return string("triangle ") + color + " " + to_string(x) + " " + to_string(y) + " " + to_string(height);
     }
 
     bool is_equal(const shared_ptr<Shape>& other) const override {
@@ -80,7 +80,7 @@ public:
 class Rectangle : public Shape {
     int width, height;
 public:
-    Rectangle(int x, int y, int width, int height, bool is_filled, char color)
+    Rectangle(int x, int y, int width, int height, bool is_filled, const string& color)
     : Shape(x, y, is_filled, color), width(width), height(height) {}
 
     void draw(vector<vector<char>>& grid) const override {
@@ -88,30 +88,29 @@ public:
             for (int i = 0; i < height; ++i) {
                 for (int j = 0; j < width; ++j) {
                     if (x + j < BOARD_WIDTH && y + i < BOARD_HEIGHT && x + j >= 0 && y + i >= 0)
-                        grid[y + i][x + j] = color;
+                        grid[y + i][x + j] = color[0];
                 }
             }
         } else {
             for (int i = 0; i < width; ++i) {
                 if (x + i < BOARD_WIDTH) {
-                    if (y >= 0 && y < BOARD_HEIGHT) grid[y][x + i] = color;
+                    if (y >= 0 && y < BOARD_HEIGHT) grid[y][x + i] = color[0];
                     if (y + height - 1 >= 0 && y + height - 1 < BOARD_HEIGHT)
-                        grid[y + height - 1][x + i] = color;
+                        grid[y + height - 1][x + i] = color[0];
                 }
             }
             for (int i = 0; i < height; ++i) {
                 if (y + i < BOARD_HEIGHT) {
-                    if (x >= 0 && x < BOARD_WIDTH) grid[y + i][x] = color;
+                    if (x >= 0 && x < BOARD_WIDTH) grid[y + i][x] = color[0];
                     if (x + width - 1 >= 0 && x + width - 1 < BOARD_WIDTH)
-                        grid[y + i][x + width - 1] = color;
+                        grid[y + i][x + width - 1] = color[0];
                 }
             }
         }
     }
 
     string get_shapes_info() const override {
-        return (is_filled ? "fill " : "frame ") + string("rectangle ") + color + " "
-        + to_string(x) + " " + to_string(y) + " " + to_string(width) + " " + to_string(height);
+        return string("rectangle ") + color + " " + to_string(x) + " " + to_string(y) + " " + to_string(width) + " " + to_string(height);
     }
     bool is_equal(const shared_ptr<Shape>& other) const override {
         auto other_rectangle = dynamic_pointer_cast<Rectangle>(other);
@@ -124,7 +123,7 @@ class Circle : public Shape {
 private:
     int radius;
 public:
-    Circle(int x, int y, int radius, bool is_filled, char color) : Shape(x, y, is_filled, color), radius(radius) {}
+    Circle(int x, int y, int radius, bool is_filled, const string& color) : Shape(x, y, is_filled, color), radius(radius) {}
 
     void draw(vector<vector<char>>& grid) const override {
 
@@ -139,14 +138,14 @@ public:
                     int posX = x + j;
                     int posY = y + i;
                     if (posX >= 0 && posX < BOARD_WIDTH && posY >= 0 && posY < BOARD_HEIGHT)
-                        grid[posY][posX] = color;
+                        grid[posY][posX] = color[0];
                 }
             }
         }
     }
 
     string get_shapes_info() const override {
-        return (is_filled ? "fill " : "frame ") + string("circle ") + color + " "  + to_string(x) + " " + to_string(y) + " " + to_string(radius);
+        return string("circle ") + color + " "  + to_string(x) + " " + to_string(y) + " " + to_string(radius);
     }
     bool is_equal(const shared_ptr<Shape>& other) const override {
         auto other_circle = dynamic_pointer_cast<Circle>(other);
@@ -160,40 +159,39 @@ private:
     int side;
 
 public:
-    Square(int x, int y, int side, bool is_filled, char color) : Shape(x, y, is_filled, color), side(side) {}
+    Square(int x, int y, int side, bool is_filled, const string& color) : Shape(x, y, is_filled, color), side(side) {}
 
     void draw(vector<vector<char>>& grid) const override {
         if (is_filled) {
             for (int i = 0; i < side; ++i) {
                 for (int j = 0; j < side; ++j) {
                     if (x + j < BOARD_WIDTH && y + i < BOARD_HEIGHT && x + j >= 0 && y + i >= 0)
-                        grid[y + i][x + j] = color;
+                        grid[y + i][x + j] = color[0];
                 }
             }
         } else {
             for (int i = 0; i < side; ++i) {
                 if (x + i < grid[0].size() && y < grid.size()) {
-                    grid[y][x + i] = color;
+                    grid[y][x + i] = color[0];
                 }
                 if (x + i < grid[0].size() && y + side - 1 < grid.size()) {
-                    grid[y + side - 1][x + i] = color;
+                    grid[y + side - 1][x + i] = color[0];
                 }
             }
 
             for (int i = 1; i < side - 1; ++i) {
                 if (x < grid[0].size() && y + i < grid.size()) {
-                    grid[y + i][x] = color;
+                    grid[y + i][x] = color[0];
                 }
                 if (x + side - 1 < grid[0].size() && y + i < grid.size()) {
-                    grid[y + i][x + side - 1] = color;
+                    grid[y + i][x + side - 1] = color[0];
                 }
             }
         }
     }
 
     string get_shapes_info() const override {
-        return (is_filled ? "fill " : "frame ") + string("square ") + color + " " + to_string(x)
-        + " " + to_string(y) + " " + to_string(side);
+        return string("square ") + color + " " + to_string(x) + " " + to_string(y) + " " + to_string(side);
     }
     bool is_equal(const shared_ptr<Shape>& other) const override {
         auto other_square = dynamic_pointer_cast<Square>(other);
@@ -207,7 +205,6 @@ class Board {
     map<int, shared_ptr<Shape>> shapes;
     int shape_id = 1;
 
-
     static bool can_be_on_board(int x, int y, int width, int height) {
         return !(x >= BOARD_WIDTH || y >= BOARD_HEIGHT || x + width <= 0 || y + height <= 0);
     }
@@ -219,14 +216,14 @@ class Board {
 public:
     Board() : grid(BOARD_HEIGHT, vector<char>(BOARD_WIDTH, ' ')) {}
 
-    void add_shape(shared_ptr<Shape> shape, const string& type, int x, int y, int size1, int size2 = 0) {
+    int add_shape(shared_ptr<Shape> shape, const string& type, int x, int y, int size1, int size2 = 0) {
 
         bool can_fit = false;
 
         for (const auto& [id, existing_shape] : shapes) {
             if (existing_shape->is_equal(shape)) {
                 cout << "Error: shape with the same type and parameters already exists" << endl;
-                return;
+                return -1;
             }
         }
 
@@ -239,9 +236,12 @@ public:
         }
 
         if (can_fit) {
-            shapes[shape_id++] = shape;
+            int current_id = shape_id++;
+            shapes[current_id] = shape;
+            return current_id;
         } else {
             cout << "Error: shape cannot be placed outside the board or be bigger than the board's size" << endl;
+            return -1;
         }
     }
 
@@ -359,6 +359,17 @@ public:
         cout << "> rectangle coordinates width height\n";
     }
 
+    void shape_info(int id, const string& shape_type, const string& color, int x, int y, int size1, int size2 = 0) {
+        cout << id << " " << shape_type << " " << color << " " << x << " " << y;
+        if (shape_type == "rectangle" || shape_type == "square" || shape_type == "circle") {
+            cout << " " << size1;
+        }
+        if (shape_type == "rectangle") {
+            cout << " " << size2;
+        }
+        cout << endl;
+    }
+
     void run() {
         string command;
         while (true) {
@@ -385,31 +396,42 @@ public:
                 board.load_board(file_path);
             } else if (command == "add") {
 
-                string fill_type, str_color, shape_type;
-                cin >> fill_type >> str_color >> shape_type;
-
-                char color = str_color[0];
+                string fill_type, color, shape_type;
+                cin >> fill_type >> color >> shape_type;
 
                 bool filled = fill_type == "fill";
+                int id;
 
                 if (shape_type == "rectangle") {
                     int x, y, width, height;
                     cin >> x >> y >> width >> height;
-                    board.add_shape(make_shared<Rectangle>(x, y, width, height, filled, color), "rectangle", x, y, width, height);
+                    id = board.add_shape(make_shared<Rectangle>(x, y, width, height, filled, color), "rectangle", x, y, width, height);
+                    if (id != -1) {
+                        shape_info(id, shape_type, color, x, y, width, height);
+                    }
                 } else if (shape_type == "triangle") {
                     int x, y, height;
                     cin >> x >> y >> height;
-                    board.add_shape(make_shared<Triangle>(x, y, height, filled, color), "triangle", x, y, height);
+                    id = board.add_shape(make_shared<Triangle>(x, y, height, filled, color), "triangle", x, y, height);
+                    if (id != -1) {
+                        shape_info(id, shape_type, color, x, y, height);
+                    }
                 }
                 else if(shape_type == "circle") {
                     int x, y, radius;
                     cin >> x >> y >> radius;
-                    board.add_shape(make_shared<Circle>(x, y, radius, filled, color), "circle", x, y, radius);
+                    id = board.add_shape(make_shared<Circle>(x, y, radius, filled, color), "circle", x, y, radius);
+                    if (id != -1) {
+                        shape_info(id, shape_type, color, x, y, radius);
+                    }
                 }
                 else if(shape_type == "square") {
                     int x, y, side;
                     cin >> x >> y >> side;
-                    board.add_shape(make_shared<Square>(x, y, side, filled, color), "square", x, y, side);
+                    id = board.add_shape(make_shared<Square>(x, y, side, filled, color), "square", x, y, side);
+                    if (id != -1) {
+                        shape_info(id, shape_type, color, x, y, side);
+                    }
                 }
             } else if (command == "exit") {
                 break;
