@@ -81,7 +81,7 @@ public:
     }
 
     string get_shapes_info() const override {
-        return string("triangle ") + color + " " + to_string(x) + " " + to_string(y) + " " + to_string(height);
+        return (is_filled ? "fill " : "frame ") + string("triangle ") + color + " " + to_string(x) + " " + to_string(y) + " " + to_string(height);
     }
 
     bool is_equal(const shared_ptr<Shape>& other) const override {
@@ -131,7 +131,7 @@ public:
         }
     }
     string get_shapes_info() const override {
-        return string("rectangle ") + color + " " + to_string(x) + " " + to_string(y) + " " + to_string(width) + " " + to_string(height);
+        return (is_filled ? "fill " : "frame ") + string("rectangle ") + color + " " + to_string(x) + " " + to_string(y) + " " + to_string(width) + " " + to_string(height);
     }
     bool is_equal(const shared_ptr<Shape>& other) const override {
         auto other_rectangle = dynamic_pointer_cast<Rectangle>(other);
@@ -174,7 +174,7 @@ public:
                (dist_squared >= (radius - 1) * (radius - 1) && dist_squared <= radius_squared);
     }
     string get_shapes_info() const override {
-        return string("circle ") + color + " "  + to_string(x) + " " + to_string(y) + " " + to_string(radius);
+        return (is_filled ? "fill " : "frame ") + string("circle ") + color + " "  + to_string(x) + " " + to_string(y) + " " + to_string(radius);
     }
     bool is_equal(const shared_ptr<Shape>& other) const override {
         auto other_circle = dynamic_pointer_cast<Circle>(other);
@@ -229,7 +229,7 @@ public:
     }
 
     string get_shapes_info() const override {
-        return string("square ") + color + " " + to_string(x) + " " + to_string(y) + " " + to_string(side);
+        return (is_filled ? "fill " : "frame ") + string("square ") + color + " " + to_string(x) + " " + to_string(y) + " " + to_string(side);
     }
     bool is_equal(const shared_ptr<Shape>& other) const override {
         auto other_square = dynamic_pointer_cast<Square>(other);
@@ -407,28 +407,27 @@ public:
         }
 
         clear_board();
-//
-//        string is_filled, color, shape_type;
-//        while (file >> is_filled >> color >> shape_type) {
-//            bool filled = (is_filled == "fill");
-//            if (shape_type == "circle") {
-//                int x, y, radius;
-//                file >> x >> y >> radius;
-//                add_shape(make_shared<Circle>(x, y, radius, filled, color), "circle", x, y, radius);
-//            } else if (shape_type == "rectangle") {
-//                int x, y, width, height;
-//                file >> x >> y >> width >> height;
-//                add_shape(make_shared<Rectangle>(x, y, width, height, filled, color), "rectangle", x, y, width, height);
-//            } else if (shape_type == "square") {
-//                int x, y, side;
-//                file >> x >> y >> side;
-//                add_shape(make_shared<Square>(x, y, side, filled), "square", x, y, side);
-//            } else if (shape_type == "triangle") {
-//                int x, y, height;
-//                file >> x >> y >> height;
-//                add_shape(make_shared<Triangle>(x, y, height, filled), "triangle", x, y, height);
-//            }
-//        }
+        string is_filled, color, shape_type;
+        while (file >> is_filled >> shape_type >> color) {
+            bool filled = (is_filled == "fill");
+            if (shape_type == "circle") {
+                int x, y, radius;
+                file >> x >> y >> radius;
+                add_shape(make_shared<Circle>(x, y, radius, filled, color), "circle", x, y, radius);
+            } else if (shape_type == "rectangle") {
+                int x, y, width, height;
+                file >> x >> y >> width >> height;
+                add_shape(make_shared<Rectangle>(x, y, width, height, filled, color), "rectangle", x, y, width, height);
+            } else if (shape_type == "square") {
+                int x, y, side;
+                file >> x >> y >> side;
+                add_shape(make_shared<Square>(x, y, side, filled, color), "square", x, y, side);
+            } else if (shape_type == "triangle") {
+                int x, y, height;
+                file >> x >> y >> height;
+                add_shape(make_shared<Triangle>(x, y, height, filled, color), "triangle", x, y, height);
+            }
+        }
         file.close();
     }
 };
