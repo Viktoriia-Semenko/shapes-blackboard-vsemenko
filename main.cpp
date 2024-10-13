@@ -21,6 +21,17 @@ public:
     virtual string get_shapes_info() const = 0;
     virtual bool is_equal(const shared_ptr<Shape>& other) const = 0;
     virtual bool is_occupied(int x, int y) const = 0;
+    virtual void get_position(int& pos_x, int& pos_y) const {
+        pos_x = x;
+        pos_y = y;
+    }
+    virtual void set_color(const string& new_color) {
+        color = new_color;
+    }
+
+    string get_color() const {
+        return color;
+    }
     virtual ~Shape() = default;
 };
 
@@ -33,6 +44,9 @@ public:
     void set_height(int new_height) {
         height = new_height;
     }
+//    void get_position() const override {
+//        return get_position();
+//    }
 
     void draw(vector<vector<char>>& grid) const override {
         if (is_filled) {
@@ -105,6 +119,9 @@ public:
         width = new_width;
         height = new_height;
     }
+//    pair<int, int> get_position() const override {
+//        return Shape::get_position();
+//    }
 
     void draw(vector<vector<char>>& grid) const override {
         if (is_filled) {
@@ -133,10 +150,10 @@ public:
     }
     bool is_occupied(int px, int py) const override {
         if (is_filled) {
-            return px >= x && px < x + width && py >= y && py < y + height; // Filled rectangle
+            return px >= x && px < x + width && py >= y && py < y + height;
         } else {
-            return ((px == x || px == x + width - 1) && (py >= y && py < y + height)) || // Vertical edges
-                   ((py == y || py == y + height - 1) && (px >= x && px < x + width)); // Horizontal edges
+            return ((px == x || px == x + width - 1) && (py >= y && py < y + height)) ||
+                   ((py == y || py == y + height - 1) && (px >= x && px < x + width));
         }
     }
     string get_shapes_info() const override {
@@ -156,6 +173,7 @@ public:
     Circle(int x, int y, int radius, bool is_filled, const string& color) : Shape(x, y, is_filled, color), radius(radius) {}
 
     void set_radius(int new_radius) { radius = new_radius; }
+//    pair<int, int> get_position() const override { return Shape::get_position();}
 
     void draw(vector<vector<char>>& grid) const override {
 
@@ -203,6 +221,8 @@ public:
     void set_side(int new_side) {
         side = new_side;
     }
+//    pair<int, int> get_position() const override { return Shape::get_position();}
+
     void draw(vector<vector<char>>& grid) const override {
         if (is_filled) {
             for (int i = 0; i < side; ++i) {
@@ -256,6 +276,7 @@ class Board {
     map<int, shared_ptr<Shape>> shapes;
     int shape_id = 1;
     shared_ptr<Shape> selected_shape;
+
 
     static bool can_be_on_board(int x, int y, int width, int height) {
         return !(x >= BOARD_WIDTH || y >= BOARD_HEIGHT || x + width <= 0 || y + height <= 0);
@@ -322,42 +343,54 @@ public:
             cout << "No shape is currently selected." << endl;
             return;
         }
+        int x, y;
+        selected_shape->get_position(x, y);
+
         if (auto circle = dynamic_pointer_cast<Circle>(selected_shape)) {
-            if (new_size2 != -1) {
-                cout << "error: invalid argument count" << endl;
+            if (!(can_be_on_board_circle(x, y, new_size1))) {
+                cout << "error: shape will go out of the board" << endl;
                 return;
             }
             circle->set_radius(new_size1);
             cout << "size of circle changed" << endl;
 
         } else if (auto rectangle = dynamic_pointer_cast<Rectangle>(selected_shape)) {
-
-            if (new_size1 <= 0 || new_size2 <= 0) {
-                cout << "error: invalid argument count" << endl;
+            if (!(can_be_on_board(x, y, new_size1, new_size2))) {
+                cout << "error: shape will go out of the board" << endl;
                 return;
             }
             rectangle->set_dimensions(new_size1, new_size2);
             cout << "size of rectangle changed." << endl;
 
         } else if (auto triangle = dynamic_pointer_cast<Triangle>(selected_shape)) {
-            if (new_size1 <= 0) {
-                cout << "error: invalid argument count" << endl;
+            if (!(can_be_on_board(x - new_size1, y, new_size1 * 2 - 1, new_size1))) {
+                cout << "error: shape will go out of the board" << endl;
                 return;
             }
             triangle->set_height(new_size1);
             cout << "size of triangle changed" << endl;
 
         } else if (auto square = dynamic_pointer_cast<Square>(selected_shape)) {
-            if (new_size1 <= 0) {
-                cout << "error: invalid argument count" << endl;
+            if (!(can_be_on_board(x, y, new_size1, new_size1))) {
+                cout << "error: shape will go out of the board" << endl;
                 return;
             }
-            square->set_side(new_size1); // Implement set_side in Square class
+            square->set_side(new_size1);
             cout << "size of square changed." << endl;
 
         } else {
             cout << "error: unknown shape type" << endl;
         }
+    }
+
+    void paint_shape(const string& new_color) {
+        if (!selected_shape) {
+            cout << "no shape was selected." << endl;
+            return;
+        }
+        selected_shape->set_color(new_color);
+
+        cout << selected_shape->get_shapes_info() << endl;
     }
 
     int add_shape(shared_ptr<Shape> shape, const string& type, int x, int y, int size1, int size2 = 0) {
@@ -384,7 +417,7 @@ public:
             shapes[current_id] = shape;
             return current_id;
         } else {
-            cout << "Error: shape cannot be placed outside the board or be bigger than the board's size" << endl;
+            cout << "error: shape cannot be placed outside the board or be bigger than the board's size" << endl;
             return -1;
         }
     }
@@ -545,17 +578,37 @@ public:
             } else if (command == "remove") {
                 board.remove_shape();
             } else if(command == "edit") {
-                int size1, size2 = -1;
-                cin >> size1;
+
+                string line;
+                getline(cin, line);
+                istringstream iss(line);
+                vector<int> sizes;
+                int size;
+
+                while (iss >> size) {
+                    sizes.push_back(size);
+                }
 
                 shared_ptr<Shape> current_shape = board.get_selected_shape();
 
                 if (dynamic_pointer_cast<Rectangle>(current_shape)) {
-                    cin >> size2;
-                    board.edit_shape(size1, size2);
+                    if (sizes.size() != 2) {
+                        cout << "error: invalid argument count" << endl;
+                        continue;
+                    }
+                    board.edit_shape(sizes[0], sizes[1]);
                 } else {
-                    board.edit_shape(size1);
+                    if (sizes.size() != 1) {
+                        cout << "error: invalid argument count" << endl;
+                        continue;
+                    }
+                    board.edit_shape(sizes[0]);
                 }
+            } else if (command == "paint") {
+                string color;
+                cin.ignore();
+                getline(cin, color);
+                board.paint_shape(color);
 
             } else if (command == "add") {
                 string fill_type, color, shape_type;
@@ -595,10 +648,13 @@ public:
                         shape_info(id, shape_type, color, x, y, side);
                     }
                 }
+                else {
+                    cout << "Incorrect shape type" << endl;
+                }
             } else if (command == "exit") {
                 break;
             } else {
-                cout << "Unknown command!\n";
+                cout << "Unknown command!" << endl;
             }
         }
     }
