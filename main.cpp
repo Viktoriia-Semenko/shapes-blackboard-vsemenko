@@ -48,6 +48,7 @@ public:
         return {x, y};
     }
 
+
     void draw(vector<vector<char>>& grid) const override {
 
         if (is_filled) {
@@ -324,13 +325,12 @@ public:
     shared_ptr<Shape> select_shape(const string& identifier) {
         try {
             int id = stoi(identifier);
-            auto it = shapes.find(id);
-            if (it != shapes.end()) {
-                selected_shape = it->second;
-                cout << it->second->get_shapes_info() << endl;
+            if (id >= 0 && id < shapes.size()) {
+                selected_shape = shapes[id];
+                cout << selected_shape->get_shapes_info() << endl;
                 return selected_shape;
             }
-        } catch (invalid_argument&){}
+        } catch (invalid_argument&) {}
 
 
         istringstream iss(identifier);
@@ -427,18 +427,18 @@ public:
 
     void move_shape(int new_x, int new_y) {
         if (!selected_shape) {
-            cout << "no shape was selected" << endl;
+            cout << "No shape was selected." << endl;
             return;
         }
 
         auto [current_x, current_y] = selected_shape->get_position();
 
-        if (current_x == new_x && current_y == new_y) {
-            bring_to_foreground(selected_shape);
-        } else {
+        if (current_x != new_x || current_y != new_y) {
             selected_shape->move_to(new_x, new_y);
             cout << selected_shape->get_shapes_info() << " moved" << endl;
         }
+
+        bring_to_foreground(selected_shape);
     }
 
     void bring_to_foreground(const shared_ptr<Shape>& shape) {
@@ -446,9 +446,8 @@ public:
         if (it != order.end()) {
             order.erase(it);
             order.push_back(shape);
-            cout << "[" << shape->get_shapes_info() << "] is now in the foreground." << endl;
         } else {
-            cout << "Shape not found in z-order." << endl;
+            cout << "shape not found." << endl;
         }
     }
 
@@ -525,7 +524,7 @@ public:
     void draw() {
         vector<vector<char>> tempGrid = grid;
 
-        for (const auto& [id, shape] : shapes) {
+        for (const auto& shape : order) {
             shape->draw(tempGrid);
         }
 
