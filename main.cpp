@@ -301,14 +301,22 @@ class Board {
     int shape_id = 1;
     shared_ptr<Shape> selected_shape;
 
-
-    static bool can_be_on_board(int x, int y, int width, int height) {
-        return !(x >= BOARD_WIDTH || y >= BOARD_HEIGHT || x + width <= 0 || y + height <= 0);
-    }
-
     static bool can_be_on_board_circle(int x, int y, int radius) {
-        return !(x + radius < 0 || x - radius >= BOARD_WIDTH || y + radius < 0 || y - radius >= BOARD_HEIGHT);
+
+        bool left_overlap = (x - radius < BOARD_WIDTH && x - radius >= 0);
+        bool right_overlap = (x + radius >= 0 && x + radius < BOARD_WIDTH);
+        bool top_overlap = (y - radius < BOARD_HEIGHT && y - radius >= 0);
+        bool bottom_overlap = (y + radius >= 0 && y + radius < BOARD_HEIGHT);
+
+        return (left_overlap || right_overlap || top_overlap || bottom_overlap);
     }
+    static bool can_be_on_board_rectangle(int x, int y, int width, int height) {
+        return !(x + width < 0 || y + height < 0 || x >= BOARD_WIDTH || y >= BOARD_HEIGHT);
+    }
+    static bool can_be_on_board_triangle(int x, int y, int base_width, int height) {
+        return !(x + base_width < 0 || y + height < 0 || x - base_width / 2 >= BOARD_WIDTH || y >= BOARD_HEIGHT);
+    }
+
 
 public:
     Board() : grid(BOARD_HEIGHT, vector<char>(BOARD_WIDTH, ' ')) {}
@@ -379,7 +387,7 @@ public:
             cout << "size of circle changed" << endl;
 
         } else if (auto rectangle = dynamic_pointer_cast<Rectangle>(selected_shape)) {
-            if (!(can_be_on_board(x, y, new_size1, new_size2))) {
+            if (!(can_be_on_board_rectangle(x, y, new_size1, new_size2))) {
                 cout << "error: shape will go out of the board" << endl;
                 return;
             }
@@ -387,7 +395,7 @@ public:
             cout << "size of rectangle changed." << endl;
 
         } else if (auto triangle = dynamic_pointer_cast<Triangle>(selected_shape)) {
-            if (!(can_be_on_board(x - new_size1, y, new_size1 * 2 - 1, new_size1))) {
+            if (!(can_be_on_board_triangle(x - new_size1, y, new_size1 * 2 - 1, new_size1))) {
                 cout << "error: shape will go out of the board" << endl;
                 return;
             }
@@ -395,7 +403,7 @@ public:
             cout << "size of triangle changed" << endl;
 
         } else if (auto square = dynamic_pointer_cast<Square>(selected_shape)) {
-            if (!(can_be_on_board(x, y, new_size1, new_size1))) {
+            if (!(can_be_on_board_rectangle(x, y, new_size1, new_size1))) {
                 cout << "error: shape will go out of the board" << endl;
                 return;
             }
@@ -445,7 +453,6 @@ public:
     }
 
     int add_shape(shared_ptr<Shape> shape, const string& type, int x, int y, int size1, int size2 = 0) {
-
         bool can_fit = false;
 
         for (const auto& [id, existing_shape] : shapes) {
@@ -456,9 +463,9 @@ public:
         }
 
         if (type == "rectangle" || type == "square") {
-            can_fit = can_be_on_board(x, y, size1, (type == "square") ? size1 : size2);
+            can_fit = can_be_on_board_rectangle(x, y, size1, (type == "square") ? size1 : size2);
         } else if (type == "triangle") {
-            can_fit = can_be_on_board(x - size1, y, size1 * 2 - 1, size1);
+            can_fit = can_be_on_board_triangle(x - size1, y, size1 * 2 - 1, size1);
         } else if (type == "circle") {
             can_fit = can_be_on_board_circle(x, y, size1);
         }
@@ -470,6 +477,7 @@ public:
             return current_id;
         } else {
             cout << "error: shape cannot be placed outside the board or be bigger than the board's size" << endl;
+            return -1;
         }
     }
 
@@ -500,7 +508,7 @@ public:
         }
     }
 
-    string get_color_code(const string& color_name) {
+    static string get_color_code(const string& color_name) {
         if (color_name == "red") {
             return "\033[31m";
         } else if (color_name == "green") {
@@ -613,7 +621,6 @@ public:
 
 class CLI {
     Board board;
-
 public:
 
     void list_available_shapes() {
