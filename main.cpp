@@ -297,8 +297,7 @@ public:
 
 class Board {
     vector<vector<char>> grid;
-    map<int, shared_ptr<Shape>> shapes;
-    vector<shared_ptr<Shape>> order;
+    vector<pair<int, shared_ptr<Shape>>> shapes;
     int shape_id = 1;
     shared_ptr<Shape> selected_shape;
 
@@ -325,19 +324,19 @@ public:
     shared_ptr<Shape> select_shape(const string& identifier) {
         try {
             int id = stoi(identifier);
-            if (id >= 0 && id < shapes.size()) {
-                selected_shape = shapes[id];
-                cout << selected_shape->get_shapes_info() << endl;
-                return selected_shape;
+            for (auto& shape_pair : shapes) {
+                if (shape_pair.first == id) {
+                    selected_shape = shape_pair.second;
+                    cout << selected_shape->get_shapes_info() << endl;
+                    return selected_shape;
+                }
             }
         } catch (invalid_argument&) {}
-
 
         istringstream iss(identifier);
         int x, y;
         if (iss >> x >> y) {
-
-            for (const auto& shape_pair : shapes) {
+            for (auto& shape_pair : shapes) {
                 if (shape_pair.second->is_occupied(x, y)) {
                     selected_shape = shape_pair.second;
                     cout << shape_pair.second->get_shapes_info() << endl;
@@ -356,18 +355,17 @@ public:
 
     void remove_shape() {
         if (selected_shape) {
-            auto it = shapes.begin();
-            while (it != shapes.end()) {
-                if (it->second == selected_shape) {
-                    cout << it->first << " " << it->second->get_shapes_info() << " removed" << endl;
-                    shapes.erase(it);
-                    selected_shape.reset();
-                    return;
-                }
-                ++it;
+            auto it = find_if(shapes.begin(), shapes.end(), [&](const auto& shape_pair) {
+                return shape_pair.second == selected_shape;
+            });
+            if (it != shapes.end()) {
+                cout << it->first << " " << it->second->get_shapes_info() << " removed" << endl;
+                shapes.erase(it);
+                selected_shape.reset();
+                return;
             }
         }
-        cout << "no shape was selected" << endl;
+        cout << "No shape selected" << endl;
     }
 
     void edit_shape(int new_size1, int new_size2 = -1) {
@@ -442,12 +440,17 @@ public:
     }
 
     void bring_to_foreground(const shared_ptr<Shape>& shape) {
-        auto it = find(order.begin(), order.end(), shape);
-        if (it != order.end()) {
-            order.erase(it);
-            order.push_back(shape);
+        auto it = find_if(shapes.begin(), shapes.end(),
+                          [&shape](const std::pair<int, std::shared_ptr<Shape>>& pair) {
+                              return pair.second == shape;
+                          });
+
+        if (it != shapes.end()) {
+            auto shape_pair = *it;
+            shapes.erase(it);
+            shapes.push_back(shape_pair);
         } else {
-            cout << "shape not found." << endl;
+            cout << "Shape not found." << endl;
         }
     }
 
@@ -471,8 +474,7 @@ public:
 
         if (can_fit) {
             int current_id = shape_id++;
-            shapes[current_id] = shape;
-            order.push_back(shape);
+            shapes.push_back({current_id, shape});
             return current_id;
         } else {
             cout << "error: shape cannot be placed outside the board or be bigger than the board's size" << endl;
@@ -483,7 +485,7 @@ public:
 
     void undo() {
         if (!shapes.empty()) {
-            shapes.erase(--shape_id);
+            shapes.pop_back();
         } else {
             cout << "No shapes to undo\n";
         }
@@ -524,10 +526,9 @@ public:
     void draw() {
         vector<vector<char>> tempGrid = grid;
 
-        for (const auto& shape : order) {
-            shape->draw(tempGrid);
+        for (const auto& shape_pair : shapes) {
+            shape_pair.second->draw(tempGrid);
         }
-
         cout << "-";
         for (int i = 0; i < BOARD_WIDTH; ++i) {
             cout << "-";
