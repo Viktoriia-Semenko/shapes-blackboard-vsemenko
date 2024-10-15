@@ -3,6 +3,7 @@
 #include <memory>
 #include <map>
 #include <fstream>
+#include <algorithm>
 #include <sstream>
 
 using namespace std;
@@ -21,16 +22,10 @@ public:
     virtual string get_shapes_info() const = 0;
     virtual bool is_equal(const shared_ptr<Shape>& other) const = 0;
     virtual bool is_occupied(int x, int y) const = 0;
-    virtual void get_position(int& pos_x, int& pos_y) const {
-        pos_x = x;
-        pos_y = y;
-    }
+    virtual pair<int, int> get_position() const = 0;
+    virtual void move_to(int x, int y ) = 0;
     virtual void set_color(const string& new_color) {
         color = new_color;
-    }
-
-    string get_color() const {
-        return color;
     }
     virtual ~Shape() = default;
 };
@@ -44,11 +39,17 @@ public:
     void set_height(int new_height) {
         height = new_height;
     }
-//    void get_position() const override {
-//        return get_position();
-//    }
+    void move_to(int new_x, int new_y) override {
+        x = new_x;
+        y = new_y;
+    }
+
+    pair<int, int> get_position() const override {
+        return {x, y};
+    }
 
     void draw(vector<vector<char>>& grid) const override {
+
         if (is_filled) {
             for (int i = 0; i < height; ++i) {
                 int left_most = x - i;
@@ -119,9 +120,14 @@ public:
         width = new_width;
         height = new_height;
     }
-//    pair<int, int> get_position() const override {
-//        return Shape::get_position();
-//    }
+    void move_to(int new_x, int new_y) override {
+        x = new_x;
+        y = new_y;
+    }
+
+    pair<int, int> get_position() const override {
+        return {x, y};
+    }
 
     void draw(vector<vector<char>>& grid) const override {
         if (is_filled) {
@@ -141,9 +147,12 @@ public:
             }
             for (int i = 0; i < height; ++i) {
                 if (y + i < BOARD_HEIGHT) {
-                    if (x >= 0 && x < BOARD_WIDTH) grid[y + i][x] = color[0];
-                    if (x + width - 1 >= 0 && x + width - 1 < BOARD_WIDTH)
+                    if (x >= 0 && x < BOARD_WIDTH) {
+                        grid[y + i][x] = color[0];
+                    }
+                    if (x + width - 1 >= 0 && x + width - 1 < BOARD_WIDTH) {
                         grid[y + i][x + width - 1] = color[0];
+                    }
                 }
             }
         }
@@ -173,7 +182,14 @@ public:
     Circle(int x, int y, int radius, bool is_filled, const string& color) : Shape(x, y, is_filled, color), radius(radius) {}
 
     void set_radius(int new_radius) { radius = new_radius; }
-//    pair<int, int> get_position() const override { return Shape::get_position();}
+    void move_to(int new_x, int new_y) override {
+        x = new_x;
+        y = new_y;
+    }
+
+    pair<int, int> get_position() const override {
+        return {x, y};
+    }
 
     void draw(vector<vector<char>>& grid) const override {
 
@@ -221,7 +237,14 @@ public:
     void set_side(int new_side) {
         side = new_side;
     }
-//    pair<int, int> get_position() const override { return Shape::get_position();}
+    void move_to(int new_x, int new_y) override {
+        x = new_x;
+        y = new_y;
+    }
+
+    pair<int, int> get_position() const override {
+        return {x, y};
+    }
 
     void draw(vector<vector<char>>& grid) const override {
         if (is_filled) {
@@ -274,6 +297,7 @@ public:
 class Board {
     vector<vector<char>> grid;
     map<int, shared_ptr<Shape>> shapes;
+    vector<shared_ptr<Shape>> order;
     int shape_id = 1;
     shared_ptr<Shape> selected_shape;
 
@@ -344,7 +368,7 @@ public:
             return;
         }
         int x, y;
-        selected_shape->get_position(x, y);
+        tie(x, y) = selected_shape->get_position();
 
         if (auto circle = dynamic_pointer_cast<Circle>(selected_shape)) {
             if (!(can_be_on_board_circle(x, y, new_size1))) {
@@ -393,6 +417,33 @@ public:
         cout << selected_shape->get_shapes_info() << endl;
     }
 
+    void move_shape(int new_x, int new_y) {
+        if (!selected_shape) {
+            cout << "no shape was selected" << endl;
+            return;
+        }
+
+        auto [current_x, current_y] = selected_shape->get_position();
+
+        if (current_x == new_x && current_y == new_y) {
+            bring_to_foreground(selected_shape);
+        } else {
+            selected_shape->move_to(new_x, new_y);
+            cout << selected_shape->get_shapes_info() << " moved" << endl;
+        }
+    }
+
+    void bring_to_foreground(const shared_ptr<Shape>& shape) {
+        auto it = find(order.begin(), order.end(), shape);
+        if (it != order.end()) {
+            order.erase(it);
+            order.push_back(shape);
+            cout << "[" << shape->get_shapes_info() << "] is now in the foreground." << endl;
+        } else {
+            cout << "Shape not found in z-order." << endl;
+        }
+    }
+
     int add_shape(shared_ptr<Shape> shape, const string& type, int x, int y, int size1, int size2 = 0) {
 
         bool can_fit = false;
@@ -415,12 +466,13 @@ public:
         if (can_fit) {
             int current_id = shape_id++;
             shapes[current_id] = shape;
+            order.push_back(shape);
             return current_id;
         } else {
             cout << "error: shape cannot be placed outside the board or be bigger than the board's size" << endl;
-            return -1;
         }
     }
+
 
     void undo() {
         if (!shapes.empty()) {
@@ -448,8 +500,21 @@ public:
         }
     }
 
-    void draw() {
+    string get_color_code(const string& color_name) {
+        if (color_name == "red") {
+            return "\033[31m";
+        } else if (color_name == "green") {
+            return "\033[32m";
+        } else if (color_name == "yellow") {
+            return "\033[33m";
+        } else if (color_name == "blue") {
+            return "\033[34m";
+        } else {
+            return "\033[0m";
+        }
+    }
 
+    void draw() {
         vector<vector<char>> tempGrid = grid;
 
         for (const auto& [id, shape] : shapes) {
@@ -465,7 +530,29 @@ public:
         for (const auto& row : tempGrid) {
             cout << "|";
             for (char c : row) {
-                cout << c;
+                string color_code;
+                switch (c) {
+                    case 'r':
+                        color_code = get_color_code("red");
+                        break;
+                    case 'g':
+                        color_code = get_color_code("green");
+                        break;
+                    case 'y':
+                        color_code = get_color_code("yellow");
+                        break;
+                    case 'b':
+                        color_code = get_color_code("blue");
+                        break;
+                    default:
+                        color_code = "";
+                }
+
+                if (!color_code.empty()) {
+                    cout << color_code << c << "\033[0m";
+                } else {
+                    cout << c;
+                }
             }
             cout << "|\n";
         }
@@ -476,6 +563,7 @@ public:
         }
         cout << "-\n";
     }
+
 
     void save_board(const string& file_path) const {
         ofstream file(file_path);
@@ -609,6 +697,10 @@ public:
                 cin.ignore();
                 getline(cin, color);
                 board.paint_shape(color);
+            } else if (command == "move") {
+                int x, y;
+                cin >> x >> y;
+                board.move_shape(x, y);
 
             } else if (command == "add") {
                 string fill_type, color, shape_type;
